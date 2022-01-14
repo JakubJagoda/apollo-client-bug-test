@@ -1,26 +1,56 @@
+import { ApolloClient, ApolloProvider, InMemoryCache } from '@apollo/client';
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { SchemaLink } from '@apollo/client/link/schema';
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import { ComponentA } from './ComponentA';
+import { ComponentB } from './ComponentB';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+// global state to be used by the resolver
+declare global {
+    interface Window {
+        __SOMETHING__: boolean;
+    }
 }
+
+const typeDefs = `
+  type Hello {
+    message: String
+  }
+  
+  type Query {
+    getHello: Hello
+  }
+`;
+
+const resolvers = {
+    Query: {
+        getHello: () => {
+            if (window.__SOMETHING__) {
+                return {
+                    message: 'hello world'
+                };
+            }
+
+            throw new Error('Error!')
+        }
+    }
+};
+
+const client = new ApolloClient({
+    link: new SchemaLink({
+        schema: makeExecutableSchema({
+            typeDefs,
+            resolvers
+        })
+    }),
+    cache: new InMemoryCache()
+});
+
+const App = () => (
+    <ApolloProvider client={client}>
+        <ComponentA />
+        <ComponentB />
+    </ApolloProvider>
+);
 
 export default App;
